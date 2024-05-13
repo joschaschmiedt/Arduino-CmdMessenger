@@ -481,7 +481,7 @@ char CmdMessenger::readCharArg()
 		return current[0];
 	}
 	ArgOk = false;
-	return 0;
+	return '\0';
 }
 
 /**
@@ -497,7 +497,7 @@ float CmdMessenger::readFloatArg()
 		return strtod(current, NULL);
 	}
 	ArgOk = false;
-	return 0;
+	return 0.0f;
 }
 
 /**
@@ -512,7 +512,7 @@ double CmdMessenger::readDoubleArg()
 		return strtod(current, NULL);
 	}
 	ArgOk = false;
-	return 0;
+	return 0.0;
 }
 
 /**
@@ -529,7 +529,7 @@ char *CmdMessenger::readStringArg()
 		return current;
 	}
 	ArgOk = false;
-	return '\0';
+	return nullptr;
 }
 
 /**
