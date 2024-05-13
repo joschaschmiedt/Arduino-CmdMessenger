@@ -39,18 +39,21 @@
   - Multi-argument commands
   - Escaping of special characters
   - Sending of binary data of any type (uses escaping)
+  CmdMessenger Version 5       - Joscha Schmiedt.
+
   */
 
-extern "C" {
+extern "C"
+{
 #include <stdlib.h>
 #include <stdarg.h>
 }
 #include <stdio.h>
 #include <CmdMessenger.h>
 
-#define _CMDMESSENGER_VERSION 3_6 // software version of this library
+#define _CMDMESSENGER_VERSION 5_0 // software version of this library
 
-// **** Initialization **** 
+// **** Initialization ****
 
 /**
  * CmdMessenger constructor
@@ -132,7 +135,7 @@ void CmdMessenger::feedinSerialData()
 {
 	while (!pauseProcessing && comms->available())
 	{
-		// The Stream class has a readBytes() function that reads many bytes at once. On Teensy 2.0 and 3.0, readBytes() is optimized. 
+		// The Stream class has a readBytes() function that reads many bytes at once. On Teensy 2.0 and 3.0, readBytes() is optimized.
 		// Benchmarks about the incredible difference it makes: http://www.pjrc.com/teensy/benchmark_usb_serial_receive.html
 
 		size_t bytesAvailable = min(comms->available(), CMDMESSENGER_MAXSTREAMBUFFERSIZE);
@@ -158,21 +161,25 @@ void CmdMessenger::feedinSerialData()
 uint8_t CmdMessenger::processLine(char serialChar)
 {
 	messageState = kProccesingMessage;
-	//char serialChar = (char)serialByte;
+	// char serialChar = (char)serialByte;
 	bool escaped = isEscaped(&serialChar, escape_character, &CmdlastChar);
-	if ((serialChar == command_separator) && !escaped) {
+	if ((serialChar == command_separator) && !escaped)
+	{
 		commandBuffer[bufferIndex] = 0;
-		if (bufferIndex > 0) {
+		if (bufferIndex > 0)
+		{
 			messageState = kEndOfMessage;
 			current = commandBuffer;
 			CmdlastChar = '\0';
 		}
 		reset();
 	}
-	else {
+	else
+	{
 		commandBuffer[bufferIndex] = serialChar;
 		bufferIndex++;
-		if (bufferIndex >= bufferLastIndex) reset();
+		if (bufferIndex >= bufferLastIndex)
+			reset();
 	}
 	return messageState;
 }
@@ -189,7 +196,8 @@ void CmdMessenger::handleMessage()
 		(*callbackList[lastCommandId])();
 	else // If command not attached, call default callback (if attached)
 #endif
-		if (default_callback != NULL) (*default_callback)();
+		if (default_callback != NULL)
+		(*default_callback)();
 }
 
 /**
@@ -200,7 +208,8 @@ bool CmdMessenger::blockedTillReply(unsigned int timeout, byte ackCmdId)
 	unsigned long time = millis();
 	unsigned long start = time;
 	bool receivedAck = false;
-	while ((time - start) < timeout && !receivedAck) {
+	while ((time - start) < timeout && !receivedAck)
+	{
 		time = millis();
 		receivedAck = checkForAck(ackCmdId);
 	}
@@ -212,15 +221,19 @@ bool CmdMessenger::blockedTillReply(unsigned int timeout, byte ackCmdId)
  */
 bool CmdMessenger::checkForAck(byte ackCommand)
 {
-	while (comms->available()) {
-		//Processes a byte and determines if an acknowlegde has come in
+	while (comms->available())
+	{
+		// Processes a byte and determines if an acknowlegde has come in
 		int messageState = processLine(comms->read());
-		if (messageState == kEndOfMessage) {
+		if (messageState == kEndOfMessage)
+		{
 			int id = readInt16Arg();
-			if (ackCommand == id && ArgOk) {
+			if (ackCommand == id && ArgOk)
+			{
 				return true;
 			}
-			else {
+			else
+			{
 				return false;
 			}
 		}
@@ -234,9 +247,10 @@ bool CmdMessenger::checkForAck(byte ackCommand)
  */
 bool CmdMessenger::next()
 {
-	char * temppointer = NULL;
+	char *temppointer = NULL;
 	// Currently, cmd messenger only supports 1 char for the field seperator
-	switch (messageState) {
+	switch (messageState)
+	{
 	case kProccesingMessage:
 		return false;
 	case kEndOfMessage:
@@ -245,7 +259,8 @@ bool CmdMessenger::next()
 	default:
 		if (dumped)
 			current = split_r(temppointer, field_separator, &last);
-		if (current != NULL) {
+		if (current != NULL)
+		{
 			dumped = true;
 			return true;
 		}
@@ -284,7 +299,8 @@ uint8_t CmdMessenger::commandID()
  */
 void CmdMessenger::sendCmdStart(byte cmdId)
 {
-	if (!startCommand) {
+	if (!startCommand)
+	{
 		startCommand = true;
 		pauseProcessing = true;
 		comms->print(cmdId);
@@ -294,9 +310,10 @@ void CmdMessenger::sendCmdStart(byte cmdId)
 /**
  * Send an escaped command argument
  */
-void CmdMessenger::sendCmdEscArg(char* arg)
+void CmdMessenger::sendCmdEscArg(char *arg)
 {
-	if (startCommand) {
+	if (startCommand)
+	{
 		comms->print(field_separator);
 		printEsc(arg);
 	}
@@ -309,7 +326,8 @@ void CmdMessenger::sendCmdEscArg(char* arg)
 void CmdMessenger::sendCmdfArg(char *fmt, ...)
 {
 	const int maxMessageSize = 128;
-	if (startCommand) {
+	if (startCommand)
+	{
 		char msg[maxMessageSize];
 		va_list args;
 		va_start(args, fmt);
@@ -340,11 +358,13 @@ void CmdMessenger::sendCmdSciArg(double arg, unsigned int n)
 bool CmdMessenger::sendCmdEnd(bool reqAc, byte ackCmdId, unsigned int timeout)
 {
 	bool ackReply = false;
-	if (startCommand) {
+	if (startCommand)
+	{
 		comms->print(command_separator);
 		if (print_newlines)
 			comms->println(); // should append BOTH \r\n
-		if (reqAc) {
+		if (reqAc)
+		{
 			ackReply = blockedTillReply(timeout, ackCmdId);
 		}
 	}
@@ -358,7 +378,8 @@ bool CmdMessenger::sendCmdEnd(bool reqAc, byte ackCmdId, unsigned int timeout)
  */
 bool CmdMessenger::sendCmd(byte cmdId, bool reqAc, byte ackCmdId)
 {
-	if (!startCommand) {
+	if (!startCommand)
+	{
 		sendCmdStart(cmdId);
 		return sendCmdEnd(reqAc, ackCmdId, CMDMESSENGER_DEFAULT_TIMEOUT);
 	}
@@ -370,7 +391,8 @@ bool CmdMessenger::sendCmd(byte cmdId, bool reqAc, byte ackCmdId)
  */
 bool CmdMessenger::sendCmd(byte cmdId)
 {
-	if (!startCommand) {
+	if (!startCommand)
+	{
 		sendCmdStart(cmdId);
 		return sendCmdEnd(false, 1, CMDMESSENGER_DEFAULT_TIMEOUT);
 	}
@@ -388,16 +410,20 @@ int CmdMessenger::findNext(char *str, char delim)
 	bool escaped = false;
 	bool EOL = false;
 	ArglastChar = '\0';
-	while (true) {
+	while (true)
+	{
 		escaped = isEscaped(str, escape_character, &ArglastChar);
 		EOL = (*str == '\0' && !escaped);
-		if (EOL) {
+		if (EOL)
+		{
 			return pos;
 		}
-		if (*str == field_separator && !escaped) {
+		if (*str == field_separator && !escaped)
+		{
 			return pos;
 		}
-		else {
+		else
+		{
 			str++;
 			pos++;
 		}
@@ -410,7 +436,8 @@ int CmdMessenger::findNext(char *str, char delim)
  */
 int16_t CmdMessenger::readInt16Arg()
 {
-	if (next()) {
+	if (next())
+	{
 		dumped = true;
 		ArgOk = true;
 		return atoi(current);
@@ -424,7 +451,8 @@ int16_t CmdMessenger::readInt16Arg()
  */
 int32_t CmdMessenger::readInt32Arg()
 {
-	if (next()) {
+	if (next())
+	{
 		dumped = true;
 		ArgOk = true;
 		return atol(current);
@@ -446,7 +474,8 @@ bool CmdMessenger::readBoolArg()
  */
 char CmdMessenger::readCharArg()
 {
-	if (next()) {
+	if (next())
+	{
 		dumped = true;
 		ArgOk = true;
 		return current[0];
@@ -460,10 +489,11 @@ char CmdMessenger::readCharArg()
  */
 float CmdMessenger::readFloatArg()
 {
-	if (next()) {
+	if (next())
+	{
 		dumped = true;
 		ArgOk = true;
-		//return atof(current);
+		// return atof(current);
 		return strtod(current, NULL);
 	}
 	ArgOk = false;
@@ -475,7 +505,8 @@ float CmdMessenger::readFloatArg()
  */
 double CmdMessenger::readDoubleArg()
 {
-	if (next()) {
+	if (next())
+	{
 		dumped = true;
 		ArgOk = true;
 		return strtod(current, NULL);
@@ -488,9 +519,10 @@ double CmdMessenger::readDoubleArg()
  * Read next argument as string.
  * Note that the String is valid until the current command is replaced
  */
-char* CmdMessenger::readStringArg()
+char *CmdMessenger::readStringArg()
 {
-	if (next()) {
+	if (next())
+	{
 		dumped = true;
 		ArgOk = true;
 		unescape(current);
@@ -506,15 +538,18 @@ char* CmdMessenger::readStringArg()
  */
 void CmdMessenger::copyStringArg(char *string, uint8_t size)
 {
-	if (next()) {
+	if (next())
+	{
 		dumped = true;
 		ArgOk = true;
 		unescape(current);
 		strlcpy(string, current, size);
 	}
-	else {
+	else
+	{
 		ArgOk = false;
-		if (size) string[0] = '\0';
+		if (size)
+			string[0] = '\0';
 	}
 }
 
@@ -523,14 +558,17 @@ void CmdMessenger::copyStringArg(char *string, uint8_t size)
  */
 uint8_t CmdMessenger::compareStringArg(char *string)
 {
-	if (next()) {
+	if (next())
+	{
 		unescape(current);
-		if (strcmp(string, current) == 0) {
+		if (strcmp(string, current) == 0)
+		{
 			dumped = true;
 			ArgOk = true;
 			return 1;
 		}
-		else {
+		else
+		{
 			ArgOk = false;
 			return 0;
 		}
@@ -548,14 +586,17 @@ void CmdMessenger::unescape(char *fromChar)
 {
 	// Move unescaped characters right
 	char *toChar = fromChar;
-	while (*fromChar != '\0') {
-		if (*fromChar == escape_character) {
+	while (*fromChar != '\0')
+	{
+		if (*fromChar == escape_character)
+		{
 			fromChar++;
 		}
 		*toChar++ = *fromChar++;
 	}
 	// Pad string with \0 if string was shortened
-	for (; toChar < fromChar; toChar++) {
+	for (; toChar < fromChar; toChar++)
+	{
 		*toChar = '\0';
 	}
 }
@@ -564,19 +605,22 @@ void CmdMessenger::unescape(char *fromChar)
  * Split string in different tokens, based on delimiter
  * Note that this is basically strtok_r, but with support for an escape character
  */
-char* CmdMessenger::split_r(char *str, const char delim, char **nextp)
+char *CmdMessenger::split_r(char *str, const char delim, char **nextp)
 {
 	char *ret;
 	// if input null, this is not the first call, use the nextp pointer instead
-	if (str == NULL) {
+	if (str == NULL)
+	{
 		str = *nextp;
 	}
 	// Strip leading delimiters
-	while (findNext(str, delim) == 0 && *str) {
+	while (findNext(str, delim) == 0 && *str)
+	{
 		str++;
 	}
 	// If this is a \0 char, return null
-	if (*str == '\0') {
+	if (*str == '\0')
+	{
 		return NULL;
 	}
 	// Set start of return pointer to this position
@@ -585,7 +629,8 @@ char* CmdMessenger::split_r(char *str, const char delim, char **nextp)
 	LastArgLength = findNext(str, delim);
 	str += LastArgLength;
 	// and exchange this for a a \0 char. This will terminate the char
-	if (*str) {
+	if (*str)
+	{
 		*str++ = '\0';
 	}
 	// Set the next pointer to this char
@@ -604,7 +649,8 @@ bool CmdMessenger::isEscaped(char *currChar, const char escapeChar, char *lastCh
 	*lastChar = *currChar;
 
 	// special case: the escape char has been escaped:
-	if (*lastChar == escape_character && escaped) {
+	if (*lastChar == escape_character && escaped)
+	{
 		*lastChar = '\0';
 	}
 	return escaped;
@@ -615,7 +661,8 @@ bool CmdMessenger::isEscaped(char *currChar, const char escapeChar, char *lastCh
  */
 void CmdMessenger::printEsc(char *str)
 {
-	while (*str != '\0') {
+	while (*str != '\0')
+	{
 		printEsc(*str++);
 	}
 }
@@ -625,7 +672,8 @@ void CmdMessenger::printEsc(char *str)
  */
 void CmdMessenger::printEsc(char str)
 {
-	if (str == field_separator || str == command_separator || str == escape_character || str == '\0') {
+	if (str == field_separator || str == command_separator || str == escape_character || str == '\0')
+	{
 		comms->print(escape_character);
 	}
 	comms->print(str);
@@ -657,14 +705,17 @@ void CmdMessenger::printSci(double f, unsigned int digits)
 	}
 
 	// max digits
-	if (digits > 6) digits = 6;
-	long multiplier = pow(10, digits);     // fix int => long
+	if (digits > 6)
+		digits = 6;
+	long multiplier = pow(10, digits); // fix int => long
 
 	int exponent;
-	if (abs(f) < 10.0) {
+	if (abs(f) < 10.0)
+	{
 		exponent = 0;
 	}
-	else {
+	else
+	{
 		exponent = int(log10(f));
 	}
 	float g = f / pow(10, exponent);
@@ -674,10 +725,11 @@ void CmdMessenger::printSci(double f, unsigned int digits)
 		exponent--;
 	}
 
-	long whole = long(g);                     // single digit
-	long part = long((g - whole)*multiplier + 0.5);  // # digits
+	long whole = long(g);							  // single digit
+	long part = long((g - whole) * multiplier + 0.5); // # digits
 	// Check for rounding above .99:
-	if (part == 100) {
+	if (part == 100)
+	{
 		whole++;
 		part = 0;
 	}
